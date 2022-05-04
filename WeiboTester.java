@@ -339,7 +339,7 @@ public class WeiboTester {
                     catch (Exception e1){
                         jsonObject.put("Area", "unknown");
                     }
-                    jsonObject.put("Area", "unknown");
+                    //jsonObject.put("Area", "unknown");
                 }
                 jsonArray.put(jsonObject);
                 driver.close();
