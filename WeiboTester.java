@@ -22,14 +22,20 @@ public class WeiboTester {
     boolean isGetCookie = false;
     String cookiePath = "weibocookie.txt";
     String beginDay = "2022-04-12";
-    String endDay = "2022-04-20";
+    String endDay = "2022-04-13";
+    int articleNum;
     Set<String> keywords = new HashSet<String>() {{
+        add("婊子");
+        add("女同性恋");
+        add("厌女");
+        add("metoo运动");
+        add("性骚扰");
         add("女拳");
         add("女权");
         add("性别歧视");
     }};
-    // String cookiePath;
-    boolean getCookie = false;
+    Set<String> mids = new HashSet<String>();
+
     public WeiboTester(String site){
         System.setProperty("webdriver.chrome.driver","D:\\Files/drive/chromedriver.exe");
         driver = new ChromeDriver();
@@ -37,7 +43,7 @@ public class WeiboTester {
         driver.get(site);
         //driver.get(site);
         driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
-
+        articleNum = 0;
         // cookiePath="Cookies.txt";
     }
 
@@ -100,6 +106,7 @@ public class WeiboTester {
     }
 
     public void GetHourInfo(Calendar dd, int hour) throws InterruptedException, IOException {
+        System.out.println(dd.getTime().toString()+"hour:"+hour);
         driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
         WebElement searchButton = driver.findElement(By.className("woo-input-main"));
         WebElement superSearch, superSearchLayer, superSearchText;
@@ -107,97 +114,114 @@ public class WeiboTester {
         Select monthSelector, yearSelector, sHourSelector, eHourSelector;
         String mainHandle, searchHandle = null, keywordInput = "", fileName;
         Set<String> webHandles;
+        int keywordCount = 0;
         mainHandle = driver.getWindowHandle();
 
         fileName = dd.getTime().toString() + "_" + hour;
         fileName = fileName.replace(" ","_").replace(":","")+".json";
 
         for (String keyword:keywords){
-            keywordInput = keywordInput + keyword;
-            keywordInput = keywordInput + "|";
+            //search for each keyword
+            // mainHandle = driver.getWindowHandle();
+            // keywordInput = keyword;
+            // searchButton.sendKeys(Keys.CONTROL,"a");
+            // searchButton.sendKeys(Keys.BACK_SPACE);
+            // searchButton.sendKeys(keywordInput);
+            // searchButton.sendKeys(Keys.ENTER);
+
+            //driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+            //Thread.sleep(5000);
+
+            superSearch = driver.findElement(By.linkText("高级搜索"));
+            superSearch.click();
+
+            driver.manage().timeouts().implicitlyWait(5,TimeUnit.SECONDS);
+            superSearchLayer = driver.findElement(By.className("m-layer"));
+
+            //
+            searchButton = superSearchLayer.findElement(By.name("keyword"));
+            searchButton.sendKeys(Keys.CONTROL,"a");
+            searchButton.sendKeys(Keys.BACK_SPACE);
+            searchButton.sendKeys(keyword);
+            //searchButton.sendKeys(Keys.ENTER);
+
+            //Set the start time
+            stimeButton = driver.findElement(By.name("stime"));
+            stimeButton.click();
+
+            mainSelect = driver.findElement(By.className("m-caldr"));
+            monthSelect = mainSelect.findElement(By.className("month"));
+            yearSelect = mainSelect.findElement(By.className("year"));
+
+
+            monthSelector = new Select(monthSelect);
+            yearSelector = new Select(yearSelect);
+
+            if (!Objects.equals(monthSelect.getAttribute("value"), dd.get(Calendar.MONTH) + "")) {
+                monthSelector.selectByValue(dd.get(Calendar.MONTH) + "");
+            }
+            //if (!Objects.equals(yearSelect.getAttribute("value"), dd.get(Calendar.YEAR) + "")){
+            //    yearSelector.selectByValue(dd.get(Calendar.YEAR)+"");
+            //}
+            daySelect = mainSelect.findElement(By.linkText(dd.get(Calendar.DATE)+""));
+            daySelect.click();
+
+            sHourButton = driver.findElement(By.name("startHour"));
+            sHourSelector = new Select(sHourButton);
+            if(!Objects.equals(sHourButton.getAttribute("value"), hour + "")){
+                sHourSelector.selectByValue(hour+"");
+            }
+
+            //Set the end time
+            if (hour==23){
+                dd.add(Calendar.DAY_OF_MONTH, 1);
+            }
+
+            etimeButton = driver.findElement(By.name("etime"));
+            etimeButton.click();
+
+            mainSelect = driver.findElement(By.className("m-caldr"));
+            monthSelect = mainSelect.findElement(By.className("month"));
+            yearSelect = mainSelect.findElement(By.className("year"));
+
+            monthSelector = new Select(monthSelect);
+            yearSelector = new Select(yearSelect);
+
+            if (!Objects.equals(monthSelect.getAttribute("value"), dd.get(Calendar.MONTH) + "")) {
+                monthSelector.selectByValue(dd.get(Calendar.MONTH) + "");
+            }
+            //if (!Objects.equals(yearSelect.getAttribute("value"), dd.get(Calendar.YEAR) + "")){
+            //    yearSelector.selectByValue(dd.get(Calendar.YEAR)+"");
+            //}
+
+            daySelect = mainSelect.findElement(By.linkText(dd.get(Calendar.DATE)+""));
+            daySelect.click();
+
+            eHourButton = driver.findElement(By.name("endHour"));
+            eHourSelector = new Select(eHourButton);
+            if(!Objects.equals(eHourButton.getAttribute("value"), (hour+1)%24+"")){
+                eHourSelector.selectByValue((hour+1)%24+"");
+            }
+            //Check and go to crawl the data!
+            selectButton = superSearchLayer.findElement(By.className("btn-box"));
+            List<WebElement> selectList = selectButton.findElements(By.xpath("./*"));
+            selectList.get(1).click();
+
+            try {
+                GetDetails(keywordCount+"_"+fileName);
+            }
+            catch(Exception e)
+            {
+                System.out.println("hhh No woobo found!");
+            }
+
+            keywordCount += 1;
+
+
         }
-        keywordInput = keywordInput.substring(0,keywordInput.length()-1);
-
-        searchButton.sendKeys(Keys.CONTROL,"a");
-        searchButton.sendKeys(Keys.BACK_SPACE);
-        searchButton.sendKeys(keywordInput);
-        searchButton.sendKeys(Keys.ENTER);
-
-        superSearch = driver.findElement(By.linkText("高级搜索"));
-        superSearch.click();
-
-        driver.manage().timeouts().implicitlyWait(5,TimeUnit.SECONDS);
-        superSearchLayer = driver.findElement(By.className("m-layer"));
-
-        //Set the start time
-        stimeButton = driver.findElement(By.name("stime"));
-        stimeButton.click();
-
-        mainSelect = driver.findElement(By.className("m-caldr"));
-        monthSelect = mainSelect.findElement(By.className("month"));
-        yearSelect = mainSelect.findElement(By.className("year"));
 
 
-        monthSelector = new Select(monthSelect);
-        yearSelector = new Select(yearSelect);
 
-        if (!Objects.equals(monthSelect.getAttribute("value"), dd.get(Calendar.MONTH) + "")) {
-            monthSelector.selectByValue(dd.get(Calendar.MONTH) + "");
-        }
-        //if (!Objects.equals(yearSelect.getAttribute("value"), dd.get(Calendar.YEAR) + "")){
-        //    yearSelector.selectByValue(dd.get(Calendar.YEAR)+"");
-        //}
-        daySelect = mainSelect.findElement(By.linkText(dd.get(Calendar.DATE)+""));
-        daySelect.click();
-
-        sHourButton = driver.findElement(By.name("startHour"));
-        sHourSelector = new Select(sHourButton);
-        if(!Objects.equals(sHourButton.getAttribute("value"), hour + "")){
-            sHourSelector.selectByValue(hour+"");
-        }
-
-        //Set the end time
-        if (hour==23){
-            dd.add(Calendar.DAY_OF_MONTH, 1);
-        }
-
-        etimeButton = driver.findElement(By.name("etime"));
-        etimeButton.click();
-
-        mainSelect = driver.findElement(By.className("m-caldr"));
-        monthSelect = mainSelect.findElement(By.className("month"));
-        yearSelect = mainSelect.findElement(By.className("year"));
-
-        monthSelector = new Select(monthSelect);
-        yearSelector = new Select(yearSelect);
-
-        if (!Objects.equals(monthSelect.getAttribute("value"), dd.get(Calendar.MONTH) + "")) {
-            monthSelector.selectByValue(dd.get(Calendar.MONTH) + "");
-        }
-        //if (!Objects.equals(yearSelect.getAttribute("value"), dd.get(Calendar.YEAR) + "")){
-        //    yearSelector.selectByValue(dd.get(Calendar.YEAR)+"");
-        //}
-
-        daySelect = mainSelect.findElement(By.linkText(dd.get(Calendar.DATE)+""));
-        daySelect.click();
-
-        eHourButton = driver.findElement(By.name("endHour"));
-        eHourSelector = new Select(eHourButton);
-        if(!Objects.equals(eHourButton.getAttribute("value"), (hour+1)%24+"")){
-            eHourSelector.selectByValue((hour+1)%24+"");
-        }
-        //Check and go to crawl the data!
-        selectButton = superSearchLayer.findElement(By.className("btn-box"));
-        List<WebElement> selectList = selectButton.findElements(By.xpath("./*"));
-        selectList.get(1).click();
-
-        try {
-            GetDetails(fileName);
-        }
-        catch(Exception e)
-        {
-            System.out.println("hhh No woobo found!");
-        }
     }
 
     public void GetDetails(String fileName) throws IOException {
@@ -211,9 +235,9 @@ public class WeiboTester {
         WebElement pageSelect = null;
         boolean multiPage = true;
         int pageNum = 1;
-        List<WebElement> details, fcf, pageList;
+        List<WebElement> details, fcf, pageList, fullContent;
         Set<String> webHandles;
-        String num, pageUrl;
+        String num, pageUrl, mid;
 
         try {
             pageSelect = driver.findElement(By.xpath("//*[@id=\"pl_feedlist_index\"]/div[3]/div/span/ul"));
@@ -242,8 +266,22 @@ public class WeiboTester {
                 jsonObject = new JSONObject();
                 txtContent = card.findElement(By.className("txt"));
                 actContent = card.findElement(By.className("card-act"));
+                // put the mid in the set
+                mid = card.findElement(By.xpath("./..")).getAttribute("mid");
+                if (mids.contains(mid)){
+                    continue;
+                }
+                else{
+                    mids.add(mid);
+                }
                 // the text content of this tweet
                 textContent = txtContent.getText();
+                // process when there is extra content
+                if(textContent.substring(textContent.length() - 3).equals("展开c")){
+                    fullContent = card.findElements(By.className("txt"));
+                    txtContent = fullContent.get(1);
+                    textContent = txtContent.getText();
+                }
                 jsonObject.put("Content", textContent);
 
                 //the time of this tweet
@@ -327,7 +365,6 @@ public class WeiboTester {
                 // the user area
                 try{
                     userArea = driver.findElement(By.xpath("//*[@id=\"app\"]/div[1]/div[2]/div[2]/main/div/div/div[2]/div[1]/div[1]/div[3]/div/div/div[1]/div[3]/div/div/div[2]/div"));
-                    //*[@id="app"]/div[1]/div[2]/div[2]/main/div/div/div[2]/div[1]/div[1]/div[3]/div/div/div[1]/div[2]/div/div/div[2]/div
                     jsonObject.put("Area", userArea.getText().substring(5));
                     //jsonArray.put(jsonObject);
                 }
@@ -339,9 +376,10 @@ public class WeiboTester {
                     catch (Exception e1){
                         jsonObject.put("Area", "unknown");
                     }
-                    //jsonObject.put("Area", "unknown");
                 }
                 jsonArray.put(jsonObject);
+                articleNum += 1;
+                System.out.println(articleNum);
                 driver.close();
                 driver.switchTo().window(mainHandle);
             }
@@ -372,5 +410,6 @@ public class WeiboTester {
         while(tmp.getTime()<=d2.getTime()){
             weiboTester.GetInfo(dd);
         }
+        weiboTester.driver.quit();
     }
 }
