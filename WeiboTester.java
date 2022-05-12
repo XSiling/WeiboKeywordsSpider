@@ -6,6 +6,7 @@ import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.Select;
 
 import java.io.*;
+import java.sql.Time;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.text.ParseException;
@@ -21,8 +22,8 @@ public class WeiboTester {
     WebDriver driver;
     boolean isGetCookie = false;
     String cookiePath = "weibocookie.txt";
-    String beginDay = "2022-04-12";
-    String endDay = "2022-04-13";
+    String beginDay = "2022-04-13";
+    String endDay = "2022-04-14";
     int articleNum;
     Set<String> keywords = new HashSet<String>() {{
         add("婊子");
@@ -51,7 +52,7 @@ public class WeiboTester {
     public void GetCookies() throws InterruptedException, IOException {
         Set<Cookie> cookies;
         ObjectOutputStream objectOutputStream = new ObjectOutputStream(new FileOutputStream(cookiePath));
-        long sleepTime = 120000;
+        long sleepTime = 60000;
         Thread.sleep(sleepTime);
         cookies = driver.manage().getCookies();
         objectOutputStream.writeObject(cookies);
@@ -121,17 +122,8 @@ public class WeiboTester {
         fileName = fileName.replace(" ","_").replace(":","")+".json";
 
         for (String keyword:keywords){
-            //search for each keyword
-            // mainHandle = driver.getWindowHandle();
-            // keywordInput = keyword;
-            // searchButton.sendKeys(Keys.CONTROL,"a");
-            // searchButton.sendKeys(Keys.BACK_SPACE);
-            // searchButton.sendKeys(keywordInput);
-            // searchButton.sendKeys(Keys.ENTER);
-
-            //driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
-            //Thread.sleep(5000);
-
+            System.out.println(keyword);
+            driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
             superSearch = driver.findElement(By.linkText("高级搜索"));
             superSearch.click();
 
@@ -208,7 +200,7 @@ public class WeiboTester {
             selectList.get(1).click();
 
             try {
-                GetDetails(keywordCount+"_"+fileName);
+                GetDetails(keyword+"_"+fileName);
             }
             catch(Exception e)
             {
@@ -335,51 +327,57 @@ public class WeiboTester {
                     }
                 }
                 driver.switchTo().window(userHandle);
-                driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
-                userInfo = driver.findElement(By.className("Main_full_1dfQX"));
 
-                // the user ID
-                driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
-                userName = driver.findElement(By.xpath("//*[@id=\"app\"]/div[1]/div[2]/div[2]/main/div/div/div[2]/div[1]/div[1]/div[2]/div[2]/div[1]"));
-                jsonObject.put("ID", userName.getText());
+                try {
+                    driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+                    userInfo = driver.findElement(By.className("Main_full_1dfQX"));
 
-                // the user gender
-                driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
-                userGender = driver.findElement(By.xpath("//*[@id=\"app\"]/div[1]/div[2]/div[2]/main/div/div/div[2]/div[1]/div[1]/div[2]/div[2]/div[1]/span[1]"));
-                genderClass = userGender.findElements(By.xpath("./*")).get(0).getAttribute("class");
-                if (genderClass.contains("female")) {
-                    jsonObject.put("Gender", "female");
-                } else {
-                    if (genderClass.contains("male")) {
-                        jsonObject.put("Gender", "male");
+                    // the user ID
+                    driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+                    userName = driver.findElement(By.xpath("//*[@id=\"app\"]/div[1]/div[2]/div[2]/main/div/div/div[2]/div[1]/div[1]/div[2]/div[2]/div[1]"));
+                    jsonObject.put("ID", userName.getText());
+
+                    // the user gender
+                    driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+                    userGender = driver.findElement(By.xpath("//*[@id=\"app\"]/div[1]/div[2]/div[2]/main/div/div/div[2]/div[1]/div[1]/div[2]/div[2]/div[1]/span[1]"));
+                    genderClass = userGender.findElements(By.xpath("./*")).get(0).getAttribute("class");
+                    if (genderClass.contains("female")) {
+                        jsonObject.put("Gender", "female");
                     } else {
-                        jsonObject.put("Gender", "unknown");
+                        if (genderClass.contains("male")) {
+                            jsonObject.put("Gender", "male");
+                        } else {
+                            jsonObject.put("Gender", "unknown");
+                        }
                     }
-                }
 
-                // the user follower
-                userFollower = driver.findElement(By.xpath("//*[@id=\"app\"]/div[1]/div[2]/div[2]/main/div/div/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/a[1]"));
-                followerText = userFollower.getText();
-                jsonObject.put("Follower", followerText.replace("粉丝", ""));
+                    // the user follower
+                    userFollower = driver.findElement(By.xpath("//*[@id=\"app\"]/div[1]/div[2]/div[2]/main/div/div/div[2]/div[1]/div[1]/div[2]/div[2]/div[2]/a[1]"));
+                    followerText = userFollower.getText();
+                    jsonObject.put("Follower", followerText.replace("粉丝", ""));
 
-                // the user area
-                try{
-                    userArea = driver.findElement(By.xpath("//*[@id=\"app\"]/div[1]/div[2]/div[2]/main/div/div/div[2]/div[1]/div[1]/div[3]/div/div/div[1]/div[3]/div/div/div[2]/div"));
-                    jsonObject.put("Area", userArea.getText().substring(5));
-                    //jsonArray.put(jsonObject);
-                }
-                catch (Exception e){
+                    // the user area
                     try {
-                        userArea = driver.findElement(By.xpath("//a[contains(text(), ’IP属地’)]"));
+                        driver.manage().timeouts().implicitlyWait(20, TimeUnit.SECONDS);
+                        userArea = driver.findElement(By.xpath("//*[@id=\"app\"]/div[1]/div[2]/div[2]/main/div/div/div[2]/div[1]/div[1]/div[3]/div/div/div[1]/div[3]/div/div/div[2]/div"));
                         jsonObject.put("Area", userArea.getText().substring(5));
+                        //jsonArray.put(jsonObject);
+                    } catch (Exception e) {
+                        try {
+                            driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+                            userArea = driver.findElement(By.xpath("//a[contains(text(), ’IP属地’)]"));
+                            jsonObject.put("Area", userArea.getText().substring(5));
+                        } catch (Exception e1) {
+                            jsonObject.put("Area", "unknown");
+                        }
                     }
-                    catch (Exception e1){
-                        jsonObject.put("Area", "unknown");
-                    }
+                    jsonArray.put(jsonObject);
+                    articleNum += 1;
+                    System.out.println(articleNum);
                 }
-                jsonArray.put(jsonObject);
-                articleNum += 1;
-                System.out.println(articleNum);
+                catch(Exception eee){
+                    System.out.println("Something Wrong");
+                }
                 driver.close();
                 driver.switchTo().window(mainHandle);
             }
